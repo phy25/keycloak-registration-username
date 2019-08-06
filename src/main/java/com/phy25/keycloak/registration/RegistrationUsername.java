@@ -1,4 +1,4 @@
-package com.phy25.keycloak.registration.ui;
+package com.phy25.keycloak.registration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,12 +9,12 @@ import java.util.regex.Pattern;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import com.phy25.keycloak.registration.misc.RegistrationInvalidUsernameConstants;
 import org.keycloak.Config;
 import org.keycloak.authentication.FormAction;
 import org.keycloak.authentication.FormActionFactory;
 import org.keycloak.authentication.FormContext;
 import org.keycloak.authentication.ValidationContext;
+import org.keycloak.authentication.forms.RegistrationPage;
 import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.forms.login.LoginFormsProvider;
@@ -28,14 +28,15 @@ import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.services.messages.Messages;
 import org.keycloak.services.validation.Validation;
 
-public class RegistrationInvalidUsernameProfile implements FormAction, FormActionFactory {
+public class RegistrationUsername implements FormAction, FormActionFactory {
 	
 	public static final String USERNAME_REGEX = "profile.username.regex";
 	public static final String INVALID_USERNAMES = "profile.username.invalid";
-    public static final String PROVIDER_ID = "registration-invalid-username-profile-action";
+    public static final String PROVIDER_ID = "registration-username-action";
     
     public String getHelpText() {
-        return "Validates email and username. Checks if username is in the list of invalid usernames";
+        return "Validates username. Checks if username is in the list of invalid usernames. " +
+                "Relies on Registration User Creation.";
     }
     
     private static final List<ProviderConfigProperty> CONFIG_PROPERTIES = new ArrayList<ProviderConfigProperty>();
@@ -50,9 +51,9 @@ public class RegistrationInvalidUsernameProfile implements FormAction, FormActio
         CONFIG_PROPERTIES.add(property);
         property = new ProviderConfigProperty();
         property.setName(INVALID_USERNAMES);
-        property.setLabel("Invalid Usernames");
+        property.setLabel("Invalid Username");
         property.setType(ProviderConfigProperty.STRING_TYPE);
-        property.setHelpText("List of invalid usernames");
+        property.setHelpText("List of invalid usernames, separated by comma");
         CONFIG_PROPERTIES.add(property);
     }
 
@@ -62,40 +63,14 @@ public class RegistrationInvalidUsernameProfile implements FormAction, FormActio
 
     public void validate(ValidationContext context) {
         MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
-    
         List<FormMessage> errors = new ArrayList<FormMessage>();
         
         context.getEvent().detail(Details.REGISTER_METHOD, "form");
         String eventError = Errors.INVALID_REGISTRATION;
         
-        if (Validation.isBlank(formData.getFirst((RegistrationInvalidUsernamePage.FIELD_FIRST_NAME)))) {
-            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_FIRST_NAME, Messages.MISSING_FIRST_NAME));
-        }
-
-        if (Validation.isBlank(formData.getFirst((RegistrationInvalidUsernamePage.FIELD_LAST_NAME)))) {
-            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_LAST_NAME, Messages.MISSING_LAST_NAME));
-        }
-
-        String email = formData.getFirst(Validation.FIELD_EMAIL);
-        boolean emailValid = true;
-        if (Validation.isBlank(email)) {
-            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_EMAIL, Messages.MISSING_EMAIL));
-            emailValid = false;
-        } else if (!Validation.isEmailValid(email)) {
-            context.getEvent().detail(Details.EMAIL, email);
-            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_EMAIL, Messages.INVALID_EMAIL));
-            emailValid = false;
-        }
-
-        if (emailValid && !context.getRealm().isDuplicateEmailsAllowed() && context.getSession().users().getUserByEmail(email, context.getRealm()) != null) {
-            eventError = Errors.EMAIL_IN_USE;
-            context.getEvent().detail(Details.EMAIL, email);
-            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_EMAIL, Messages.EMAIL_EXISTS));
-        }
-        
-        String username = formData.getFirst(RegistrationInvalidUsernamePage.FIELD_USERNAME);
+        String username = formData.getFirst(RegistrationPage.FIELD_USERNAME);
         if(Validation.isBlank(username)){
-        	errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_USERNAME, Messages.MISSING_USERNAME));        	
+        	errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, Messages.MISSING_USERNAME));
         }else{
         	Map<String, String> usernameConfig = context.getAuthenticatorConfig().getConfig();
         	String usernameRegex = usernameConfig.get(USERNAME_REGEX);
@@ -104,19 +79,18 @@ public class RegistrationInvalidUsernameProfile implements FormAction, FormActio
         	if(invalidUsernames.contains(username.toLowerCase())){
 	        	eventError = Errors.INVALID_USER_CREDENTIALS;
 	     	    context.getEvent().detail(Details.USERNAME, username);
-	            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_USERNAME, RegistrationInvalidUsernameConstants.USER_NAME_NOT_AVAILABLE));
+	            errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, RegistrationUsernameConstants.USER_NAME_NOT_AVAILABLE));
 	        }
 			Pattern pattern = Pattern.compile(usernameRegex);
 			Matcher matcher = pattern.matcher(username);
 	        if(!matcher.matches()){
 	        	eventError = Errors.INVALID_USER_CREDENTIALS;
 	     	    context.getEvent().detail(Details.USERNAME, username);
-	            errors.add(new FormMessage(RegistrationInvalidUsernamePage.FIELD_USERNAME, RegistrationInvalidUsernameConstants.INVALID_USER_NAME_CHARACTERS));
+	            errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, RegistrationUsernameConstants.INVALID_USER_NAME_CHARACTERS));
 	        }
-        	
 		}
         
-        if (errors.size() > 0) {      	
+        if (errors.size() > 0) {
             context.error(eventError);
             context.validationError(formData, errors);
             return;
@@ -127,12 +101,7 @@ public class RegistrationInvalidUsernameProfile implements FormAction, FormActio
     }
 
     public void success(FormContext context) {
-        UserModel user = context.getUser();
-        MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
-        user.setFirstName(formData.getFirst(RegistrationInvalidUsernamePage.FIELD_FIRST_NAME));
-        user.setLastName(formData.getFirst(RegistrationInvalidUsernamePage.FIELD_LAST_NAME));
-        user.setEmail(formData.getFirst(RegistrationInvalidUsernamePage.FIELD_EMAIL));
-        user.setUsername(formData.getFirst(RegistrationInvalidUsernamePage.FIELD_USERNAME));
+        // complete
     }
 
     public void buildPage(FormContext context, LoginFormsProvider form) {
@@ -160,7 +129,7 @@ public class RegistrationInvalidUsernameProfile implements FormAction, FormActio
     }
 
     public String getDisplayType() {
-        return "Profile Validation with Invalid Usernames";
+        return "Username Validation in Registration Form";
     }
 
     public String getReferenceCategory() {
