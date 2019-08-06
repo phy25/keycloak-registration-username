@@ -1,4 +1,4 @@
-package com.keycloak.custom.extensions.misc;
+package com.phy25.keycloak.registration.misc;
 
 public class RegistrationInvalidUsernameConstants {
 

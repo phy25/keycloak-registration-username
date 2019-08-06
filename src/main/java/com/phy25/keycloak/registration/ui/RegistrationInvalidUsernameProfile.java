@@ -1,4 +1,4 @@
-package com.keycloak.custom.extensions.ui;
+package com.phy25.keycloak.registration.ui;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 import javax.ws.rs.core.MultivaluedMap;
 
+import com.phy25.keycloak.registration.misc.RegistrationInvalidUsernameConstants;
 import org.keycloak.Config;
 import org.keycloak.authentication.FormAction;
 import org.keycloak.authentication.FormActionFactory;
@@ -26,8 +27,6 @@ import org.keycloak.models.utils.FormMessage;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.services.messages.Messages;
 import org.keycloak.services.validation.Validation;
-
-import com.keycloak.custom.extensions.misc.RegistrationInvalidUsernameConstants;
 
 public class RegistrationInvalidUsernameProfile implements FormAction, FormActionFactory {
 	

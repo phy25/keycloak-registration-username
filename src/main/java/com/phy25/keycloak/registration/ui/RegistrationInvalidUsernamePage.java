@@ -1,4 +1,4 @@
-package com.keycloak.custom.extensions.ui;
+package com.phy25.keycloak.registration.ui;
 
 import org.keycloak.Config;
 import org.keycloak.authentication.FormAuthenticator;
