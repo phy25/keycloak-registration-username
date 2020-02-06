@@ -1,0 +1,8 @@
+{
+  "themes": [
+    {
+      "name" : "keycloak-registration-username",
+      "types": [ "login" ]
+    }
+  ]
+}

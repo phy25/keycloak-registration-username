@@ -28,72 +28,49 @@ import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.services.messages.Messages;
 import org.keycloak.services.validation.Validation;
 
-public class RegistrationUsername implements FormAction, FormActionFactory {
-	
-	public static final String USERNAME_REGEX = "profile.username.regex";
-	public static final String INVALID_USERNAMES = "profile.username.invalid";
-    public static final String PROVIDER_ID = "registration-username-action";
-    
+public class RegistrationProfileFirstName implements FormAction, FormActionFactory {
+    public static final String PROVIDER_ID = "registration-profile-fn-action";
+
+    @Override
     public String getHelpText() {
-        return "Validates username. Checks if username is in the list of invalid usernames. " +
-                "Relies on Registration User Creation.";
-    }
-    
-    private static final List<ProviderConfigProperty> CONFIG_PROPERTIES = new ArrayList<ProviderConfigProperty>();
-
-    static {
-        ProviderConfigProperty property;
-        property = new ProviderConfigProperty();
-        property.setName(USERNAME_REGEX);
-        property.setLabel("Username Pattern");
-        property.setType(ProviderConfigProperty.STRING_TYPE);
-        property.setHelpText("Regex pattern");
-        CONFIG_PROPERTIES.add(property);
-        property = new ProviderConfigProperty();
-        property.setName(INVALID_USERNAMES);
-        property.setLabel("Invalid Username");
-        property.setType(ProviderConfigProperty.STRING_TYPE);
-        property.setHelpText("List of invalid usernames, separated by comma");
-        CONFIG_PROPERTIES.add(property);
+        return "Validates email, first name (without last name) attributes and stores them in user data.";
     }
 
+    @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-    	return CONFIG_PROPERTIES;
+        return null;
     }
 
+    @Override
     public void validate(ValidationContext context) {
         MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
-        List<FormMessage> errors = new ArrayList<FormMessage>();
-        
+        List<FormMessage> errors = new ArrayList<>();
+
         context.getEvent().detail(Details.REGISTER_METHOD, "form");
         String eventError = Errors.INVALID_REGISTRATION;
-        
-        String username = formData.getFirst(RegistrationPage.FIELD_USERNAME);
-        if(Validation.isBlank(username)){
-        	errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, Messages.MISSING_USERNAME));
-        }else{
-        	Map<String, String> usernameConfig = context.getAuthenticatorConfig().getConfig();
-        	String invalidUsernameString = usernameConfig.get(INVALID_USERNAMES);
-        	if (invalidUsernameString != null){
-            	List<String> invalidUsernames = Arrays.asList(invalidUsernameString.toLowerCase().split(","));
-        	
-                if(invalidUsernames.contains(username.toLowerCase())){
-                    eventError = Errors.INVALID_USER_CREDENTIALS;
-                    context.getEvent().detail(Details.USERNAME, username);
-                    errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, RegistrationUsernameConstants.USER_NAME_NOT_AVAILABLE));
-                }
-        	}
 
-            String usernameRegex = usernameConfig.get(USERNAME_REGEX);
-			Pattern pattern = Pattern.compile(usernameRegex);
-			Matcher matcher = pattern.matcher(username);
-	        if(!matcher.matches()){
-	        	eventError = Errors.INVALID_USER_CREDENTIALS;
-	     	    context.getEvent().detail(Details.USERNAME, username);
-	            errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, RegistrationUsernameConstants.INVALID_USER_NAME_CHARACTERS));
-	        }
-		}
-        
+        if (Validation.isBlank(formData.getFirst((RegistrationPage.FIELD_FIRST_NAME)))) {
+            errors.add(new FormMessage(RegistrationPage.FIELD_FIRST_NAME, Messages.MISSING_FIRST_NAME));
+        }
+
+        String email = formData.getFirst(Validation.FIELD_EMAIL);
+        boolean emailValid = true;
+        if (Validation.isBlank(email)) {
+            errors.add(new FormMessage(RegistrationPage.FIELD_EMAIL, Messages.MISSING_EMAIL));
+            emailValid = false;
+        } else if (!Validation.isEmailValid(email)) {
+            context.getEvent().detail(Details.EMAIL, email);
+            errors.add(new FormMessage(RegistrationPage.FIELD_EMAIL, Messages.INVALID_EMAIL));
+            emailValid = false;
+        }
+
+        if (emailValid && !context.getRealm().isDuplicateEmailsAllowed() && context.getSession().users().getUserByEmail(email, context.getRealm()) != null) {
+            eventError = Errors.EMAIL_IN_USE;
+            formData.remove(Validation.FIELD_EMAIL);
+            context.getEvent().detail(Details.EMAIL, email);
+            errors.add(new FormMessage(RegistrationPage.FIELD_EMAIL, Messages.EMAIL_EXISTS));
+        }
+
         if (errors.size() > 0) {
             context.error(eventError);
             context.validationError(formData, errors);
@@ -104,67 +81,84 @@ public class RegistrationUsername implements FormAction, FormActionFactory {
         }
     }
 
+    @Override
     public void success(FormContext context) {
-        // complete
+        UserModel user = context.getUser();
+        MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
+        user.setFirstName(formData.getFirst(RegistrationPage.FIELD_FIRST_NAME));
+        user.setEmail(formData.getFirst(RegistrationPage.FIELD_EMAIL));
     }
 
+    @Override
     public void buildPage(FormContext context, LoginFormsProvider form) {
         // complete
     }
 
+    @Override
     public boolean requiresUser() {
         return false;
     }
 
+    @Override
     public boolean configuredFor(KeycloakSession session, RealmModel realm, UserModel user) {
         return true;
     }
 
+    @Override
     public void setRequiredActions(KeycloakSession session, RealmModel realm, UserModel user) {
 
     }
 
+    @Override
     public boolean isUserSetupAllowed() {
         return false;
     }
 
+
+    @Override
     public void close() {
 
     }
 
+    @Override
     public String getDisplayType() {
-        return "Username Validation in Registration Form";
+        return "Profile Validation (First Name)";
     }
 
+    @Override
     public String getReferenceCategory() {
         return null;
     }
 
+    @Override
     public boolean isConfigurable() {
-        return true;
+        return false;
     }
 
     private static AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
             AuthenticationExecutionModel.Requirement.REQUIRED,
             AuthenticationExecutionModel.Requirement.DISABLED
     };
-    
+    @Override
     public AuthenticationExecutionModel.Requirement[] getRequirementChoices() {
         return REQUIREMENT_CHOICES;
     }
-    
+    @Override
     public FormAction create(KeycloakSession session) {
         return this;
     }
 
+    @Override
     public void init(Config.Scope config) {
-    	
+
     }
 
+    @Override
     public void postInit(KeycloakSessionFactory factory) {
 
     }
 
+    @Override
     public String getId() {
         return PROVIDER_ID;
     }
