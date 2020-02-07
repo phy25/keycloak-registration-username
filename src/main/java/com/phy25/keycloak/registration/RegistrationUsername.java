@@ -32,6 +32,7 @@ public class RegistrationUsername implements FormAction, FormActionFactory {
 	
 	public static final String USERNAME_REGEX = "profile.username.regex";
 	public static final String INVALID_USERNAMES = "profile.username.invalid";
+    public static final String HOOK_URL = "profile.username.hook-url";
     public static final String PROVIDER_ID = "registration-username-action";
     
     public String getHelpText() {
@@ -54,6 +55,12 @@ public class RegistrationUsername implements FormAction, FormActionFactory {
         property.setLabel("Invalid Username");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         property.setHelpText("List of invalid usernames, separated by comma");
+        CONFIG_PROPERTIES.add(property);
+        property = new ProviderConfigProperty();
+        property.setName(HOOK_URL);
+        property.setLabel("Hook GET URL");
+        property.setType(ProviderConfigProperty.STRING_TYPE);
+        property.setHelpText("?username=[username]&email=[email]");
         CONFIG_PROPERTIES.add(property);
     }
 

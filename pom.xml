@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.phy25</groupId>
   <artifactId>keycloak-registration-username</artifactId>
-  <version>0.0.1</version>
+  <version>0.1.1</version>
 
 	<dependencyManagement>
 		<dependencies>
