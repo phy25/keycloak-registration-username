@@ -35,7 +35,6 @@ public class ResetCredentialChooseUserRelexedHook implements Authenticator, Auth
     public static final String ENABLE_INVALID_PROMPT = "resetcred.choose.prompt";
     public static final String HOOK_URL = "resetcred.choose.hook-url";
     public static final String PROVIDER_ID = "phy25-reset-creds-choose-rh";
-    public static final String MESSAGE_RESET_PASSWORD_PREVENTED = "ResetPasswordPreventedMessage";
 
     private static final List<ProviderConfigProperty> CONFIG_PROPERTIES = new ArrayList<ProviderConfigProperty>();
 
@@ -127,7 +126,7 @@ public class ResetCredentialChooseUserRelexedHook implements Authenticator, Auth
                     String resp = SimpleHttp.doGet(url, context.getSession()).asString();
                     if ("yes".equals(resp)) {
                         logger.warn("Matched hook request: " + url);
-                        eventError = MESSAGE_RESET_PASSWORD_PREVENTED;
+                        eventError = RegistrationUsernameConstants.RESET_PASSWORD_PREVENTED_EXTERNAL;
                     }
                 } catch (Exception e) {
                     logger.warn("Failed hook request: " + url, e);
