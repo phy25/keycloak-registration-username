@@ -108,8 +108,10 @@ public class RegistrationUsername implements FormAction, FormActionFactory {
             // hook check
             String baseUrl = usernameConfig.get(HOOK_URL);
             if (baseUrl != null && !("".equals(baseUrl))) {
+                String email = formData.getFirst(RegistrationPage.FIELD_EMAIL);
                 UriBuilder urlBuild = UriBuilder.fromUri(baseUrl)
-                        .queryParam("username", username);
+                        .queryParam("username", username)
+                        .queryParam("email", email);
                 String url = urlBuild.build().toString();
                 try {
                     String resp = SimpleHttp.doGet(url, context.getSession()).asString();
