@@ -130,6 +130,7 @@ public class ResetCredentialChooseUserRelexedHook implements Authenticator, Auth
                     }
                 } catch (Exception e) {
                     logger.warn("Failed hook request: " + url, e);
+                    eventError = RegistrationUsernameConstants.RESET_PASSWORD_PREVENTED_EXTERNAL;
                 }
             }
 

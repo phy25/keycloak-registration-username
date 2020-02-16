@@ -121,6 +121,9 @@ public class RegistrationUsername implements FormAction, FormActionFactory {
                     }
                 } catch (Exception e) {
                     logger.warn("Failed hook request: " + url, e);
+                    eventError = Errors.INVALID_USER_CREDENTIALS;
+                    context.getEvent().detail(Details.USERNAME, username);
+                    errors.add(new FormMessage(RegistrationPage.FIELD_USERNAME, RegistrationUsernameConstants.REGISTRATION_PREVENTED_EXTERNAL));
                 }
             }
         }
